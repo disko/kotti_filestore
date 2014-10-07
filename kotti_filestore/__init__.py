@@ -7,6 +7,7 @@ Created on 2014-07-26
 
 import os
 from uuid import uuid4
+from logging import getLogger
 
 from yurl import URL
 from zope.interface import implements
@@ -19,6 +20,10 @@ from pyramid.util import DottedNameResolver
 from repoze.filesafe import create_file
 from repoze.filesafe import delete_file
 from repoze.filesafe import open_file
+import transaction
+
+
+log = getLogger(__name__)
 
 
 def kotti_configure(settings):
@@ -29,7 +34,17 @@ def kotti_configure(settings):
     factory = DottedNameResolver(None).resolve(url.scheme)
 
     settings['kotti.blobstore'] = factory(url.path)
+    createbasefolder(url.path)
     settings['pyramid.includes'] += ' kotti_filestore'
+
+
+def createbasefolder(path):
+    """Check if folder for file storage exists and create it if necessary."""
+    if os.path.isdir(path):
+        return
+    else:
+        os.makedirs(path)
+        log.info("Directory %s created".format(path))
 
 
 def includeme(config):
@@ -44,7 +59,7 @@ def split_by_n(seq, n=2):
         seq = seq[n:]
 
 
-class Filestore(object):
+class filestore(object):
     """"""
 
     implements(IBlobStorage)
@@ -68,7 +83,19 @@ class Filestore(object):
         :rtype: unicode
         """
 
-        return os.path.join(self._path, unicode(id))
+        path = ""
+        if id == "tmp":
+            path = unicode(id)
+        else:
+            # Create path from id by converting to unicode,
+            # splitting up and inserting slashes
+            for subdir in split_by_n(unicode(id).replace("-", "")):
+                if path != "":
+                    path += "/"
+                path += subdir
+
+        #Full path is the newly created path appended to the base directory
+        return os.path.join(self._path, path)
 
     def read(self, id):
         """ Get the data for an object with the given ID.
@@ -95,11 +122,27 @@ class Filestore(object):
         """
 
         id = uuid4()
+        # TODO: call createbasefolder during transaction
+        # check if the filepath and the tempdir exist and create if necessary
+        createbasefolder(os.path.split(self.path(id))[0])
+        createbasefolder(self.path())
         f = create_file(self.path(id), mode='w', tempdir=self.path())
         f.write(data)
         f.close()
 
         return str(id)
+
+    def removebasefolder(self, path):
+        """ Recursively remove all empty folders. """
+        # Stop if either the base directory is reached
+        # or the directory is not empty
+        if path == self._path:
+            return
+        elif len(os.listdir(path)) > 0:
+            return
+        else:
+            os.rmdir(path)
+            self.removebasefolder(os.path.split(path)[0])
 
     def delete(self, id):
         """ Delete the object with the given ID.
@@ -110,5 +153,11 @@ class Filestore(object):
         :result: Success
         :rtype: bool
         """
-
-        delete_file(self.path(id=id))
+        # The kotti.events.ObjectDelete Event fires when the transaction is
+        # already committing. It is safe to use os.unlink
+        if transaction.get().status == "Committing":
+            os.unlink(self.path(id))
+            self.removebasefolder(os.path.split(self.path(id=id))[0])
+        else:
+            # TODO: call removebasefolder during transaction
+            delete_file(self.path(id))
