@@ -38,7 +38,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Kotti',
+        'Kotti>0.10b1',
         'repoze.filesafe',
         'yurl',
     ],
