@@ -3,18 +3,19 @@ import os
 from setuptools import find_packages
 from setuptools import setup
 
-project = 'foo'
-version = '0.1'
+project = 'kotti_filestore'
+version = '0.1dev'
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.rst')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
+CONTRIBUTORS = open(os.path.join(here, 'CONTRIBUTORS.rst')).read()
 
 setup(
     name=project,
     version=version,
-    description="A Blob Storage implementation for Kotti",
-    long_description=README + '\n\n' + CHANGES,
+    description="Filesystem storage of BLOBs for Kotti.",
+    long_description=README + '\n\n' + CONTRIBUTORS + '\n\n' + CHANGES,
     classifiers=[
         "Environment :: Web Environment",
         "Framework :: Pylons",
@@ -40,7 +41,7 @@ setup(
         'Kotti',
         'repoze.filesafe',
         'yurl',
-        ],
+    ],
     entry_points={
         'scripts': [],
         },
@@ -49,6 +50,6 @@ setup(
             ('**.py', 'lingua_python', None),
             ('**.zcml', 'lingua_xml', None),
             ('**.pt', 'lingua_xml', None),
-            ]
-        },
-    )
+        ]
+    },
+)

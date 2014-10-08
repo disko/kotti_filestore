@@ -1,7 +1,8 @@
 pytest_plugins = "kotti"
 
-from pytest import fixture
 import shutil
+
+from pytest import fixture
 
 
 class mocktransaction(object):

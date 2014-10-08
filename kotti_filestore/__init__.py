@@ -6,48 +6,71 @@ Created on 2014-07-26
 """
 
 import os
-from uuid import uuid4
 from logging import getLogger
+from uuid import uuid4
 
-from yurl import URL
-from zope.interface import implements
-
-from kotti.events import ObjectDelete
-from kotti.events import subscribe
+import transaction
 from kotti.interfaces import IBlobStorage
-from kotti.resources import File
 from pyramid.util import DottedNameResolver
 from repoze.filesafe import create_file
 from repoze.filesafe import delete_file
 from repoze.filesafe import open_file
-import transaction
+from yurl import URL
+from zope.interface import implements
 
 
 log = getLogger(__name__)
 
 
 def kotti_configure(settings):
-    """"""
+    """ Kotti configuration.  This function is called by Kotti during startup.
 
+    :param settings: Settings from the PasteDeploy ini file.
+    :type settings: dict
+    """
+
+    # Parse the ``kotti.blobstore`` option as an URL.
     url = URL(settings['kotti.blobstore'])
 
+    # The scheme / protocol part of the URL is the dotted class name of the
+    # BlobStorage provider.
     factory = DottedNameResolver(None).resolve(url.scheme)
 
+    # Create an instance of the provider, passing it the path part of the URL
+    # as its configuration and store the instance in the settings dict.
     settings['kotti.blobstore'] = factory(url.path)
-    createbasefolder(url.path)
+
+    # Create
+    create_directory(url.path)
 
 
-def createbasefolder(path):
-    """Check if folder for file storage exists and create it if necessary."""
+def create_directory(path):
+    """ Check if a directory exists for the given path and create it if
+    necessary.
+
+    :param path: Absoulte path for of the directory
+    :type path:
+    """
+
     if os.path.isdir(path):
         return
     else:
-        os.makedirs(path)
+        os.makedirs(path, 0700)
         log.info("Directory %s created".format(path))
 
 
 def split_by_n(seq, n=2):
-    """A generator to divide a sequence into chunks of n units."""
+    """ A generator to divide a sequence into chunks of n units.
+
+    :param seq: Sequence to be divided
+    :type seq: iteratable (usually str)
+
+    :param n: length of chunks
+    :type n: int
+
+    :result: list of chunks
+    :rtype: iterable
+    """
 
     while seq:
         yield seq[:n]
@@ -55,7 +78,7 @@ def split_by_n(seq, n=2):
 
 
 class filestore(object):
-    """"""
+    """ BLOB storage provider for Kotti """
 
     implements(IBlobStorage)
 
@@ -70,7 +93,8 @@ class filestore(object):
         self._path = path
 
     def path(self, id='tmp'):
-        """
+        """ Return the absolute path for the given file id.
+
         :param id: ID of the file object
         :type id: something convertable to unicode
 
@@ -79,6 +103,7 @@ class filestore(object):
         """
 
         path = ""
+
         if id == "tmp":
             path = unicode(id)
         else:
@@ -90,6 +115,7 @@ class filestore(object):
                 path += subdir
 
         #Full path is the newly created path appended to the base directory
+
         return os.path.join(self._path, path)
 
     def read(self, id):
@@ -103,6 +129,7 @@ class filestore(object):
         """
 
         f = open_file(self.path(id), mode='r')
+
         return f.read()
 
     def write(self, data):
@@ -117,18 +144,19 @@ class filestore(object):
         """
 
         id = uuid4()
-        # TODO: call createbasefolder during transaction
+        # TODO: call create_directory during transaction
         # check if the filepath and the tempdir exist and create if necessary
-        createbasefolder(os.path.split(self.path(id))[0])
-        createbasefolder(self.path())
+        create_directory(os.path.split(self.path(id))[0])
+        create_directory(self.path())
         f = create_file(self.path(id), mode='w', tempdir=self.path())
         f.write(data)
         f.close()
 
         return str(id)
 
-    def removebasefolder(self, path):
-        """ Recursively remove all empty folders. """
+    def remove_base_directory(self, path):
+        """ Recursively remove all empty directorys. """
+
         # Stop if either the base directory is reached
         # or the directory is not empty
         if path == self._path or path+"/" == self._path:
@@ -137,7 +165,7 @@ class filestore(object):
             return
         else:
             os.rmdir(path)
-            self.removebasefolder(os.path.split(path)[0])
+            self.remove_base_directory(os.path.split(path)[0])
 
     def delete(self, id):
         """ Delete the object with the given ID.
@@ -148,11 +176,12 @@ class filestore(object):
         :result: Success
         :rtype: bool
         """
+
         # The kotti.events.ObjectDelete Event fires when the transaction is
         # already committing. It is safe to use os.unlink
         if transaction.get().status == "Committing":
             os.unlink(self.path(id))
-            self.removebasefolder(os.path.split(self.path(id=id))[0])
+            self.remove_base_directory(os.path.split(self.path(id=id))[0])
         else:
-            # TODO: call removebasefolder during transaction
+            # TODO: call remove_base_directory during transaction
             delete_file(self.path(id))

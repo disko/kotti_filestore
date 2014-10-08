@@ -30,16 +30,16 @@ def test_path(testfilestore):
     assert testfilestore.path() == "./.testtmp/tmp"
 
 
-def test_createbasefolder(removedir):
-    """ Test Cases for kotti_filestore.createbasefolder(). """
+def test_create_directory(removedir):
+    """ Test Cases for kotti_filestore.create_directory(). """
 
     import kotti_filestore
 
     os.makedirs("./.testtmp/test/")
-    # Test that function returns without exception if folder already exists
-    kotti_filestore.createbasefolder("./.testtmp/test")
-    # Test that new folder is created if specified folder does not exist
-    kotti_filestore.createbasefolder("./.testtmp/test2")
+    # Test that function returns without exception if directory already exists
+    kotti_filestore.create_directory("./.testtmp/test")
+    # Test that new directory is created if specified directory does not exist
+    kotti_filestore.create_directory("./.testtmp/test2")
     assert os.path.isdir("./.testtmp/test2")
 
 
@@ -60,24 +60,24 @@ def test_read(removedir, request, testfilestore):
     assert testfilestore.read("test") == testtext
 
 
-def test_removebasefolder(removedir, testfilestore):
-    """ Test Cases for filestore.removebasefolder(). """
+def test_remove_base_directory(removedir, testfilestore):
+    """ Test Cases for filestore.remove_base_directory(). """
 
     os.makedirs("./.testtmp/te/st/di/re/ct/or/y")
-    # Add random content to folder te
-    os.mkdir("./.testtmp/te/foldercontent")
+    # Add random content to directory te
+    os.mkdir("./.testtmp/te/directorycontent")
     # Test that function returns without exception when path is
     # filestore directory
-    testfilestore.removebasefolder("./.testtmp/")
-    testfilestore.removebasefolder("./.testtmp/te/st/di/re/ct/or/y")
-    # Test that all empty folders have been removed
+    testfilestore.remove_base_directory("./.testtmp/")
+    testfilestore.remove_base_directory("./.testtmp/te/st/di/re/ct/or/y")
+    # Test that all empty directorys have been removed
     assert os.path.isdir("./.testtmp/te/st") is False
-    # Test that recursive removal has stopped at non-empty folder
+    # Test that recursive removal has stopped at non-empty directory
     assert os.path.isdir("./.testtmp/te")
 
 
 def test_delete(transactionmockup, removedir, testfilestore):
-    """ Test Cases for filestore.removebasefolder(). """
+    """ Test Cases for filestore.remove_base_directory(). """
 
     os.makedirs("./.testtmp/te")
     testfile = open("./.testtmp/te/st", "w")
@@ -86,9 +86,9 @@ def test_delete(transactionmockup, removedir, testfilestore):
     testfilestore.delete("test")
     # Check that file no longer exists
     assert os.path.isfile("./.testtmp/te/st") is False
-    # Check that containing folder no longer exists
+    # Check that containing directory no longer exists
     assert os.path.isdir("./.testtmp/te") is False
-    # Check that initial folder has not been deleted
+    # Check that initial directory has not been deleted
     assert os.path.isdir("./.testtmp")
 
 
@@ -112,8 +112,10 @@ def test_configure(removedir):
     import kotti_filestore
 
     os.mkdir("./.testtmp")
-    testsettings = {'kotti.blobstore':
-        u'kotti_filestore.filestore:./.testtmp/testfilestore'}
+    testsettings = {
+        'kotti.blobstore':
+        u'kotti_filestore.filestore:./.testtmp/testfilestore',
+    }
     kotti_filestore.kotti_configure(testsettings)
     assert testsettings['kotti.blobstore']._path == u'./.testtmp/testfilestore'
     assert os.path.isdir("./.testtmp/testfilestore")
