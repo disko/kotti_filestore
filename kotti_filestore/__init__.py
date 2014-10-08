@@ -35,7 +35,6 @@ def kotti_configure(settings):
 
     settings['kotti.blobstore'] = factory(url.path)
     createbasefolder(url.path)
-    settings['pyramid.includes'] += ' kotti_filestore'
 
 
 def createbasefolder(path):
@@ -45,10 +44,6 @@ def createbasefolder(path):
     else:
         os.makedirs(path)
         log.info("Directory %s created".format(path))
-
-
-def includeme(config):
-    config.scan(__name__)
 
 
 def split_by_n(seq, n=2):
@@ -136,7 +131,7 @@ class filestore(object):
         """ Recursively remove all empty folders. """
         # Stop if either the base directory is reached
         # or the directory is not empty
-        if path == self._path:
+        if path == self._path or path+"/" == self._path:
             return
         elif len(os.listdir(path)) > 0:
             return

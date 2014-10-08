@@ -1,0 +1,6 @@
+.cache
+.coverage
+Kotti.db
+filestore
+*egg-info
+*.pyc
