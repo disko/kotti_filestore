@@ -1,8 +1,10 @@
 pytest_plugins = "kotti"
 
+import os
 import shutil
 
 from pytest import fixture
+from yurl import URL
 
 
 class mocktransaction(object):
@@ -20,13 +22,14 @@ def transactionmockup(monkeypatch):
 
 
 @fixture
-def removedir(request):
+def tmpdir(request):
     def rmdir():
-        shutil.rmtree("./.testtmp")
+        shutil.rmtree("/tmp/kotti_filestore")
     request.addfinalizer(rmdir)
+    os.makedirs("/tmp/kotti_filestore", mode=0777)
 
 
 @fixture
-def testfilestore():
+def filestore(tmpdir):
     from kotti_filestore import filestore
-    return filestore("./.testtmp/")
+    return filestore(URL("foo:///tmp/kotti_filestore/"))

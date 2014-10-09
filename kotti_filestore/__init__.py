@@ -11,44 +11,20 @@ from uuid import uuid4
 
 import transaction
 from kotti.interfaces import IBlobStorage
-from pyramid.util import DottedNameResolver
 from repoze.filesafe import create_file
 from repoze.filesafe import delete_file
 from repoze.filesafe import open_file
-from yurl import URL
 from zope.interface import implements
 
 
 log = getLogger(__name__)
 
 
-def kotti_configure(settings):
-    """ Kotti configuration.  This function is called by Kotti during startup.
-
-    :param settings: Settings from the PasteDeploy ini file.
-    :type settings: dict
-    """
-
-    # Parse the ``kotti.blobstore`` option as an URL.
-    url = URL(settings['kotti.blobstore'])
-
-    # The scheme / protocol part of the URL is the dotted class name of the
-    # BlobStorage provider.
-    factory = DottedNameResolver(None).resolve(url.scheme)
-
-    # Create an instance of the provider, passing it the path part of the URL
-    # as its configuration and store the instance in the settings dict.
-    settings['kotti.blobstore'] = factory(url.path)
-
-    # Create
-    create_directory(url.path)
-
-
 def create_directory(path):
     """ Check if a directory exists for the given path and create it if
     necessary.
 
-    :param path: Absoulte path for of the directory
+    :param path: Absoulte path of the directory
     :type path:
     """
 
@@ -56,7 +32,7 @@ def create_directory(path):
         return
     else:
         os.makedirs(path, 0700)
-        log.info("Directory %s created".format(path))
+        log.info("Directory created: %s".format(path))
 
 
 def split_by_n(seq, n=2):
@@ -78,19 +54,20 @@ def split_by_n(seq, n=2):
 
 
 class filestore(object):
-    """ BLOB storage provider for Kotti """
+    """ BLOB storage provider for Kotti that stores BLOB in the filesystem """
 
     implements(IBlobStorage)
 
-    def __init__(self, path):
-        """ The constructor is (optionally) passed a string containing the
-        desired configuration options (see above).
+    def __init__(self, url):
+        """ The constructor is passed an URL containing the desired
+        configuration options.
 
-        :param config: Configuration string
-        :type config: str
+        :param config: Configuration URL
+        :type config: :class:`yurl.URL`
         """
 
-        self._path = path
+        self._path = url.path
+        create_directory(self._path)
 
     def path(self, id='tmp'):
         """ Return the absolute path for the given file id.
@@ -102,17 +79,12 @@ class filestore(object):
         :rtype: unicode
         """
 
-        path = ""
-
         if id == "tmp":
             path = unicode(id)
         else:
-            # Create path from id by converting to unicode,
+            # Create path from id by converting to str,
             # splitting up and inserting slashes
-            for subdir in split_by_n(unicode(id).replace("-", "")):
-                if path != "":
-                    path += "/"
-                path += subdir
+            path = os.path.join(*split_by_n(str(id).replace("-", "")))
 
         #Full path is the newly created path appended to the base directory
 
