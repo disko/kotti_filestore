@@ -4,3 +4,4 @@ Kotti.db
 filestore
 *egg-info
 *.pyc
+dist
