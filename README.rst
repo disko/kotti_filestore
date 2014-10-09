@@ -9,7 +9,7 @@ Filesystem storage of BLOBs for Kotti_.
 Setup
 =====
 
-You also need an option to tell Kotti to use the ``kotti_filestore`` add-on and to configure the location where the BLOBs will be stored on the filesystem.
+You only need to add an option to tell Kotti to use the ``kotti_filestore`` add-on and to configure the location where the BLOBs will be stored on the filesystem.
 The line in your ``[app:main]`` (or ``[app:kotti]``, depending on how you setup Fanstatic) section could then look like this::
 
   kotti.blobstore = kotti_filestore.filestore://%(here)s/filestore
