@@ -1,3 +1,10 @@
+============
+DO NOT USE !
+============
+
+The code in Kotti on which this package relied has been abandoned in favor of usage of the filedepot package!
+-------------------------------------------------------------------------------------------------------------
+
 ===============
 kotti_filestore
 ===============
